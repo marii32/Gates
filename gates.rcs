@@ -1,0 +1,230 @@
+program Gate{
+	
+	clock 0t10ms;
+	
+	input inp 0 0 8;
+	
+	output out1 0 0 8;
+	output out2 0 0 8;
+	
+	bool actuator_gate_up;
+	bool actuator_gate_down;
+	
+	bool up;
+	bool down;
+	
+	bool gate_up;
+	bool gate_down;
+	
+	
+	uint8 gate_angle;
+	
+	bool signal = inp[1];
+	
+	bool on_sensor;
+	
+	bool train_is_near;
+	bool train_is_out;
+	
+	
+	bool LED_WHITE = out1[1];
+	bool LED_RED = out2[1];
+	
+	int8 trains_count;
+	
+	const int8 MAX_TRAINS = 2;
+	
+	
+	process Init{
+		
+		state begin{
+			
+			
+			trains_count = 0;
+			
+			LED_WHITE = true;
+    		LED_RED = false;
+    		
+    		
+    		gate_angle = 90;
+			
+			//start process Controls;
+			start process GateController;
+			start process GateActuator;
+			start process Gate;
+			start process GateSensors;
+			start process CheckSignal;
+			stop;
+			
+		}
+	}
+	
+	process CheckSignal{
+		
+		
+		bool old_signal;
+		
+		state Init looped{
+			
+			if (signal == true && old_signal == false){
+				start process Train;
+			}
+			
+			old_signal = signal;
+		}
+	}
+	
+	process  Train{
+		
+		state Init looped{
+			
+			on_sensor = true;
+			timeout 0t60s{
+				on_sensor = false;
+			}
+		}
+	}
+	
+
+
+	
+	process GateController{
+		
+		
+		state check_controls looped{
+		
+	
+		
+			if(on_sensor){
+				
+				LED_RED = true; 
+    			LED_WHITE = false;
+    			
+				if(!gate_down){
+					
+					down = true; 
+					up = false;
+				}
+			}
+			
+			
+			else{ 
+				
+				if(gate_up){
+					
+					LED_WHITE = true; 
+    				LED_RED = false;
+				}
+				else{
+					
+					up = true; 
+					down = false;
+				}
+			}
+	
+		}
+		
+		
+		
+	}
+	
+	
+	
+	
+	process GateActuator{
+		
+		state check_command looped{
+			
+			if (down){
+				
+				actuator_gate_down = true; 
+			}
+			else{
+				
+				actuator_gate_down = false; 
+			}
+			
+			
+			
+			if (up){
+				
+				
+				actuator_gate_up = true;
+			}
+			else{
+				
+				actuator_gate_up = false;
+			}
+			
+		}
+	}
+	
+	
+	process Gate{
+		
+		
+		
+
+		state check_actuator looped{
+			
+			if (actuator_gate_down){ 
+				
+				if (gate_angle > 0){ 
+					
+					
+					gate_angle = gate_angle - 1;
+					
+				}
+			
+			
+			
+			}
+			
+		
+			if (actuator_gate_up){
+				
+				if (gate_angle < 90){ 
+					gate_angle = gate_angle + 1;
+				}
+				
+			}
+			
+		
+		}
+	}
+	
+
+	
+	
+	
+	process GateSensors{
+		
+		state check_state_gate looped{
+			
+			if (gate_angle == 0){
+				
+				gate_down = true;
+				
+
+			}
+			else{
+				
+				gate_down = false;
+			}
+			
+			
+			if (gate_angle == 90){
+				
+				gate_up = true;
+			}
+			else{
+				
+				gate_up = false;
+			}
+			
+			
+		}
+	}
+	
+
+}
